@@ -25,6 +25,7 @@ namespace EasyWhisper
         private string? ModelFileName;
         private const GgmlType WhisperModel = GgmlType.LargeV3Turbo;
         private TaskCompletionSource? recordingCompletionSource;
+        private bool ShouldProcessLocally = false;
 
         public MainWindow()
         {
@@ -108,7 +109,7 @@ namespace EasyWhisper
             stopwatch = Stopwatch.StartNew();
             timer = new DispatcherTimer
             {
-                Interval = TimeSpan.FromSeconds(1)
+                Interval = TimeSpan.FromSeconds(0.75)
             };
             timer.Tick += Timer_Tick;
             timer.Start();
@@ -150,7 +151,15 @@ namespace EasyWhisper
         private async void StopRecordingButton_Click(object sender, RoutedEventArgs e)
         {
             await StopRecording();
-            await ProcessAudio();
+
+            if (ShouldProcessLocally)
+            {
+                await ProcessAudioLocally();
+            }
+            else
+            {
+                await ProcessAudioOnline();
+            }
         }
 
         private async Task StopRecording()
@@ -172,7 +181,7 @@ namespace EasyWhisper
             ProcessingProgressBar.IsIndeterminate = true;
         }
 
-        private async Task ProcessAudio()
+        private async Task ProcessAudioLocally()
         {
             await InitializeWhisper();
 
@@ -198,6 +207,41 @@ namespace EasyWhisper
                 var duration = endTime - startTime;
 
                 TranscriptionTextBox.Text = result.ToString().Trim();
+                StartRecordingButton.IsEnabled = true;
+                CopyToClipboardButton.IsEnabled = true;
+                StatusText.Text = "Transcription complete, took " + duration.ToString("mm\\:ss") + " (minutes:secondes) for a recording of " + TimerDisplay.Text;
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Error processing audio: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                StatusText.Text = "Error processing audio";
+            }
+            finally
+            {
+                ProcessingProgressBar.Visibility = Visibility.Collapsed;
+                if (File.Exists(tempFile))
+                {
+                    try
+                    {
+                        File.Delete(tempFile);
+                    }
+                    catch { /* Ignore cleanup errors */ }
+                }
+            }
+        }
+
+        private async Task ProcessAudioOnline()
+        {
+            try
+            {
+                var startTime = DateTime.Now;
+
+                var transcript = await WhisperHelper.GenerateTranscription(tempFile, languageCode: "fr");
+
+                var endTime = DateTime.Now;
+                var duration = endTime - startTime;
+
+                TranscriptionTextBox.Text = transcript;
                 StartRecordingButton.IsEnabled = true;
                 CopyToClipboardButton.IsEnabled = true;
                 StatusText.Text = "Transcription complete, took " + duration.ToString("mm\\:ss") + " (minutes:secondes) for a recording of " + TimerDisplay.Text;
