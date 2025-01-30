@@ -52,6 +52,8 @@ namespace EasyWhisper
             _options.IncludeTimestamps = IncludeTimestampsCheckBox.IsChecked ?? false;
             _options.OpenAIApiKey = string.IsNullOrWhiteSpace(ApiKeyTextBox.Text) ? null : ApiKeyTextBox.Text.Trim();
             _options.OpenAIBasePath = string.IsNullOrWhiteSpace(BasePathTextBox.Text) ? null : BasePathTextBox.Text.Trim();
+            
+            _options.SaveSettings();
             DialogResult = true;
             Close();
         }

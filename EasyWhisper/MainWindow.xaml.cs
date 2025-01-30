@@ -1,4 +1,4 @@
-﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿using NAudio.Wave;
+﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿using NAudio.Wave;
 using System;
 using System.Diagnostics;
 using System.IO;
@@ -24,11 +24,12 @@ namespace EasyWhisper
         private const string ModelFileNameTemplate = "ggml-{0}.bin";
         private string? ModelFileName;
         private TaskCompletionSource? recordingCompletionSource;
-        private ParameterOptions _options = new ParameterOptions();
+        private ParameterOptions _options;
 
         public MainWindow()
         {
             InitializeComponent();
+            _options = ParameterOptions.LoadSettings();
             StatusText.Text = "Ready to record...";
         }
 

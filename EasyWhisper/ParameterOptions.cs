@@ -1,5 +1,7 @@
 using Whisper.net.Ggml;
 using System.Linq;
+using System.Xml.Serialization;
+using System.IO;
 
 namespace EasyWhisper
 {
@@ -12,6 +14,8 @@ namespace EasyWhisper
 
     public class ParameterOptions
     {
+        private const string SettingsFileName = "EasyWhisper.settings.xml";
+
         public bool ProcessLocally { get; set; }
         public WhisperLanguage Language { get; set; }
         public GgmlType WhisperModel { get; set; }
@@ -35,6 +39,45 @@ namespace EasyWhisper
                 GgmlType.Tiny,
                 GgmlType.TinyEn
             };
+
+        public static string GetSettingsFilePath()
+        {
+            return Path.Combine(AppContext.BaseDirectory, SettingsFileName);
+        }
+
+        public static ParameterOptions LoadSettings()
+        {
+            string path = GetSettingsFilePath();
+            if (!File.Exists(path))
+            {
+                return new ParameterOptions();
+            }
+
+            try
+            {
+                var serializer = new XmlSerializer(typeof(ParameterOptions));
+                using var reader = new StreamReader(path);
+                return (ParameterOptions)serializer.Deserialize(reader);
+            }
+            catch
+            {
+                return new ParameterOptions();
+            }
+        }
+
+        public void SaveSettings()
+        {
+            try
+            {
+                var serializer = new XmlSerializer(typeof(ParameterOptions));
+                using var writer = new StreamWriter(GetSettingsFilePath());
+                serializer.Serialize(writer, this);
+            }
+            catch
+            {
+                // Ignore save errors
+            }
+        }
 
         public ParameterOptions()
         {
