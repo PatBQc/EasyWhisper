@@ -273,25 +273,21 @@ namespace EasyWhisper
         {
             try
             {
-                var jsonDoc = JsonDocument.Parse(srtJsonResponse);
-                if (jsonDoc.RootElement.TryGetProperty("text", out var textElement))
+                var srtLines = srtJsonResponse.Split(new[] { "\n\n" }, StringSplitOptions.RemoveEmptyEntries);
+                var plainTextBuilder = new StringBuilder();
+                foreach (var srtLine in srtLines)
                 {
-                    var srtLines = textElement.GetString().Split(new[] { "\n\n" }, StringSplitOptions.RemoveEmptyEntries);
-                    var plainTextBuilder = new StringBuilder();
-                    foreach (var srtLine in srtLines)
+                    var srtParts = srtLine.Split('\n');
+                    if (srtParts.Length >= 3)
                     {
-                        var srtParts = srtLine.Split('\n');
-                        if (srtParts.Length >= 3)
-                        {
-                            var timestamp = srtParts[1]; // Second line is the timestamp
-                            var text = string.Join(" ", srtParts.Skip(2)); // Skip ID and get only the text
-                            plainTextBuilder.AppendLine(timestamp);
-                            plainTextBuilder.AppendLine(text);
-                            plainTextBuilder.AppendLine(); // Add an extra new line for readability
-                        }
+                        var timestamp = srtParts[1]; // Second line is the timestamp
+                        var text = string.Join(" ", srtParts.Skip(2)); // Skip ID and get only the text
+                        plainTextBuilder.AppendLine(timestamp);
+                        plainTextBuilder.AppendLine(text);
+                        plainTextBuilder.AppendLine(); // Add an extra new line for readability
                     }
-                    return plainTextBuilder.ToString();
                 }
+                return plainTextBuilder.ToString();
             }
             catch (Exception ex)
             {

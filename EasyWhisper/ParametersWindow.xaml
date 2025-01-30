@@ -19,9 +19,6 @@
         <StackPanel Grid.Row="0" Margin="10">
             <TextBlock Text="Parameters" FontSize="16" FontWeight="Bold" Margin="0,0,0,10"/>
             
-            <TextBlock Text="Model" Margin="0,10,0,5"/>
-            <ComboBox x:Name="ModelComboBox" Margin="0,0,0,10"/>
-            
             <TextBlock Text="Language" Margin="0,10,0,5"/>
             <ComboBox x:Name="LanguageComboBox" Margin="0,0,0,10">
                 <ComboBoxItem Content="Auto"/>
@@ -33,6 +30,24 @@
             <TextBlock Text="Note: Model selection only applies when processing locally" 
                      TextWrapping="Wrap" Margin="20,5,0,0" 
                      Foreground="Gray" FontStyle="Italic"/>
+            <TextBlock Text="Note: API Configuration only applies when processing online" 
+                     TextWrapping="Wrap" Margin="20,5,0,0" 
+                     Foreground="Gray" FontStyle="Italic"/>
+
+            <CheckBox x:Name="IncludeTimestampsCheckBox" Content="Include timestamps in output" Margin="0,10,0,10"/>
+
+            <TextBlock Text="API Configuration" FontWeight="Bold" Margin="0,10,0,5"/>
+            <TextBlock Text="OpenAI API Key" Margin="0,5,0,5"/>
+            <TextBox x:Name="ApiKeyTextBox" Margin="0,0,0,5"/>
+            <TextBlock Text="Leave empty to use OPENAI_API_KEY environment variable" 
+                     TextWrapping="Wrap" Margin="20,0,0,10" 
+                     Foreground="Gray" FontStyle="Italic"/>
+            
+            <TextBlock Text="API Base Path (Optional)" Margin="0,5,0,5"/>
+            <TextBox x:Name="BasePathTextBox" Margin="0,0,0,10"/>
+
+            <TextBlock Text="Model" Margin="0,10,0,5"/>
+            <ComboBox x:Name="ModelComboBox" Margin="0,0,0,10"/>
         </StackPanel>
 
         <StackPanel Grid.Row="1" Orientation="Horizontal" HorizontalAlignment="Right">

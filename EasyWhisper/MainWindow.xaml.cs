@@ -1,4 +1,4 @@
-﻿﻿﻿﻿﻿﻿﻿﻿using NAudio.Wave;
+﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿using NAudio.Wave;
 using System;
 using System.Diagnostics;
 using System.IO;
@@ -235,7 +235,12 @@ namespace EasyWhisper
             {
                 var startTime = DateTime.Now;
 
-                var transcript = await WhisperHelper.GenerateTranscription(tempFile, languageCode: _options.GetLanguageCode());
+                var transcript = await WhisperHelper.GenerateTranscription(
+                    tempFile, 
+                    openAIApiKey: _options.OpenAIApiKey,
+                    openAIBasePath: _options.OpenAIBasePath,
+                    includeTimestamps: _options.IncludeTimestamps,
+                    languageCode: _options.GetLanguageCode());
 
                 var endTime = DateTime.Now;
                 var duration = endTime - startTime;

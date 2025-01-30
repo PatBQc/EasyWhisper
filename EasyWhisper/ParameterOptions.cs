@@ -15,6 +15,9 @@ namespace EasyWhisper
         public bool ProcessLocally { get; set; }
         public WhisperLanguage Language { get; set; }
         public GgmlType WhisperModel { get; set; }
+        public bool IncludeTimestamps { get; set; }
+        public string? OpenAIApiKey { get; set; }
+        public string? OpenAIBasePath { get; set; }
 
         // Ordered from most to least capable
         public static readonly GgmlType[] OrderedModels = new[]
@@ -38,6 +41,9 @@ namespace EasyWhisper
             ProcessLocally = false;
             Language = WhisperLanguage.Auto;
             WhisperModel = GgmlType.LargeV3Turbo; // Default model
+            IncludeTimestamps = false;
+            OpenAIApiKey = null; // Will use OPENAI_API_KEY environment variable if not set
+            OpenAIBasePath = null;
         }
 
         public ParameterOptions Clone()
@@ -46,7 +52,10 @@ namespace EasyWhisper
             {
                 ProcessLocally = this.ProcessLocally,
                 Language = this.Language,
-                WhisperModel = this.WhisperModel
+                WhisperModel = this.WhisperModel,
+                IncludeTimestamps = this.IncludeTimestamps,
+                OpenAIApiKey = this.OpenAIApiKey,
+                OpenAIBasePath = this.OpenAIBasePath
             };
         }
 
@@ -56,7 +65,7 @@ namespace EasyWhisper
             {
                 WhisperLanguage.English => "en",
                 WhisperLanguage.French => "fr",
-                _ => "auto"
+                _ => ""
             };
         }
 
