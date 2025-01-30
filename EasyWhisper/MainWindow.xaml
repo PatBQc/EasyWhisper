@@ -16,11 +16,20 @@
             <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
 
-        <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,10">
-            <Button x:Name="StartRecordingButton" Content="Start Recording" Width="120" Height="30" Margin="0,0,10,0" Click="StartRecordingButton_Click"/>
-            <Button x:Name="StopRecordingButton" Content="Stop Recording" Width="120" Height="30" IsEnabled="False" Click="StopRecordingButton_Click"/>
-            <TextBlock x:Name="TimerDisplay" Text="00:00:00" VerticalAlignment="Center" Margin="20,0,0,0" FontSize="16"/>
-        </StackPanel>
+        <Grid Grid.Row="0" Margin="0,0,0,10">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+            
+            <StackPanel Grid.Column="0" Orientation="Horizontal">
+                <Button x:Name="StartRecordingButton" Content="Start Recording" Width="120" Height="30" Margin="0,0,10,0" Click="StartRecordingButton_Click"/>
+                <Button x:Name="StopRecordingButton" Content="Stop Recording" Width="120" Height="30" IsEnabled="False" Click="StopRecordingButton_Click"/>
+                <TextBlock x:Name="TimerDisplay" Text="00:00:00" VerticalAlignment="Center" Margin="20,0,0,0" FontSize="16"/>
+            </StackPanel>
+            
+            <Button Grid.Column="1" x:Name="ParametersButton" Content="⚙️" Width="30" Height="30" Click="ParametersButton_Click"/>
+        </Grid>
 
         <ProgressBar Grid.Row="1" x:Name="ProcessingProgressBar" Height="20" Margin="0,0,0,10" Visibility="Collapsed"/>
         <TextBlock Grid.Row="2" x:Name="StatusText" Text="Ready to record..." Margin="0,0,0,10"/>

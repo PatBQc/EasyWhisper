@@ -1,4 +1,4 @@
-﻿using NAudio.Wave;
+﻿﻿﻿﻿using NAudio.Wave;
 using System;
 using System.Diagnostics;
 using System.IO;
@@ -25,7 +25,7 @@ namespace EasyWhisper
         private string? ModelFileName;
         private const GgmlType WhisperModel = GgmlType.LargeV3Turbo;
         private TaskCompletionSource? recordingCompletionSource;
-        private bool ShouldProcessLocally = false;
+        private ParameterOptions _options = new ParameterOptions();
 
         public MainWindow()
         {
@@ -152,7 +152,7 @@ namespace EasyWhisper
         {
             await StopRecording();
 
-            if (ShouldProcessLocally)
+            if (_options.ProcessLocally)
             {
                 await ProcessAudioLocally();
             }
@@ -190,7 +190,7 @@ namespace EasyWhisper
             try
             {
                 using var processor = whisperFactory.CreateBuilder()
-                    .WithLanguage("french")
+                    .WithLanguage(_options.GetLanguageCode())
                     .Build();
 
                 using var fileStream = File.OpenRead(tempFile);
@@ -236,7 +236,7 @@ namespace EasyWhisper
             {
                 var startTime = DateTime.Now;
 
-                var transcript = await WhisperHelper.GenerateTranscription(tempFile, languageCode: "fr");
+                var transcript = await WhisperHelper.GenerateTranscription(tempFile, languageCode: _options.GetLanguageCode());
 
                 var endTime = DateTime.Now;
                 var duration = endTime - startTime;
@@ -271,6 +271,15 @@ namespace EasyWhisper
             {
                 Clipboard.SetText(TranscriptionTextBox.Text);
                 StatusText.Text = "Text copied to clipboard";
+            }
+        }
+
+        private void ParametersButton_Click(object sender, RoutedEventArgs e)
+        {
+            var dialog = new ParametersWindow(_options) { Owner = this };
+            if (dialog.ShowDialog() == true)
+            {
+                _options = dialog.Options;
             }
         }
 
