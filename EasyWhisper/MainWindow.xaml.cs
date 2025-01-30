@@ -1,4 +1,4 @@
-﻿﻿﻿﻿using NAudio.Wave;
+﻿﻿﻿﻿﻿﻿﻿﻿using NAudio.Wave;
 using System;
 using System.Diagnostics;
 using System.IO;
@@ -23,7 +23,6 @@ namespace EasyWhisper
         private WhisperFactory? whisperFactory;
         private const string ModelFileNameTemplate = "ggml-{0}.bin";
         private string? ModelFileName;
-        private const GgmlType WhisperModel = GgmlType.LargeV3Turbo;
         private TaskCompletionSource? recordingCompletionSource;
         private ParameterOptions _options = new ParameterOptions();
 
@@ -42,7 +41,7 @@ namespace EasyWhisper
                     return;
                 }
 
-                ModelFileName = string.Format(ModelFileNameTemplate, WhisperModel.ToString().ToLowerInvariant());
+                ModelFileName = string.Format(ModelFileNameTemplate, _options.WhisperModel.ToString().ToLowerInvariant());
 
                 if (!File.Exists(ModelFileName))
                 {
@@ -66,7 +65,7 @@ namespace EasyWhisper
             if (!File.Exists(modelPath))
             {
                 Debug.WriteLine("Downloading Whisper model...");
-                using var modelStream = await WhisperGgmlDownloader.GetGgmlModelAsync(WhisperModel);
+                using var modelStream = await WhisperGgmlDownloader.GetGgmlModelAsync(_options.WhisperModel);
                 using var fileWriter = File.OpenWrite(modelPath);
                 await modelStream.CopyToAsync(fileWriter);
             }
