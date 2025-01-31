@@ -1,4 +1,4 @@
-﻿﻿using NAudio.Wave;
+﻿﻿﻿﻿﻿﻿using NAudio.Wave;
 using System;
 using System.Diagnostics;
 using System.IO;
@@ -74,7 +74,7 @@ namespace EasyWhisper
         {
             try
             {
-                audioRecorder = new AudioRecorder();
+                audioRecorder = new AudioRecorder(_options.CaptureSystemAudio, _options.KeepRecordingFiles);
                 audioRecorder.StatusUpdated += (s, status) => StatusText.Text = status;
                 audioRecorder.RecordingTimeUpdated += (s, time) => TimerDisplay.Text = time.ToString(@"hh\:mm\:ss");
                 audioRecorder.ErrorOccurred += (s, ex) => MessageBox.Show($"Error during recording: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);

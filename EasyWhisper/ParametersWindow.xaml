@@ -34,6 +34,16 @@
                      TextWrapping="Wrap" Margin="20,5,0,0" 
                      Foreground="Gray" FontStyle="Italic"/>
 
+            <CheckBox x:Name="CaptureSystemAudioCheckBox" Content="Capture system audio (speakers)" Margin="0,10,0,0"/>
+            <TextBlock Text="Note: This will record both microphone and system audio" 
+                     TextWrapping="Wrap" Margin="20,5,0,0" 
+                     Foreground="Gray" FontStyle="Italic"/>
+
+            <CheckBox x:Name="KeepRecordingFilesCheckBox" Content="Keep recording files" Margin="0,10,0,0"/>
+            <TextBlock Text="Note: Files will be saved in the 'Recording' folder" 
+                     TextWrapping="Wrap" Margin="20,5,0,0" 
+                     Foreground="Gray" FontStyle="Italic"/>
+
             <CheckBox x:Name="IncludeTimestampsCheckBox" Content="Include timestamps in output" Margin="0,10,0,10"/>
 
             <TextBlock Text="API Configuration" FontWeight="Bold" Margin="0,10,0,5"/>

@@ -20,6 +20,8 @@ namespace EasyWhisper
         public WhisperLanguage Language { get; set; }
         public GgmlType WhisperModel { get; set; }
         public bool IncludeTimestamps { get; set; }
+        public bool CaptureSystemAudio { get; set; }
+        public bool KeepRecordingFiles { get; set; }
         public string? OpenAIApiKey { get; set; }
         public string? OpenAIBasePath { get; set; }
 
@@ -85,6 +87,8 @@ namespace EasyWhisper
             Language = WhisperLanguage.Auto;
             WhisperModel = GgmlType.LargeV3Turbo; // Default model
             IncludeTimestamps = false;
+            CaptureSystemAudio = false;
+            KeepRecordingFiles = false;
             OpenAIApiKey = null; // Will use OPENAI_API_KEY environment variable if not set
             OpenAIBasePath = null;
         }
@@ -98,7 +102,9 @@ namespace EasyWhisper
                 WhisperModel = this.WhisperModel,
                 IncludeTimestamps = this.IncludeTimestamps,
                 OpenAIApiKey = this.OpenAIApiKey,
-                OpenAIBasePath = this.OpenAIBasePath
+                OpenAIBasePath = this.OpenAIBasePath,
+                CaptureSystemAudio = this.CaptureSystemAudio,
+                KeepRecordingFiles = this.KeepRecordingFiles
             };
         }
 

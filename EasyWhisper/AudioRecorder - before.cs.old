@@ -13,36 +13,24 @@ namespace EasyWhisper
         private WasapiLoopbackCapture? speakerCapture;
         private WaveFileWriter? micWriter;
         private WaveFileWriter? speakerWriter;
-        private string? micFile;
-        private string? speakerFile;
-        private string? mixedFile;
+        private string? micTempFile;
+        private string? speakerTempFile;
+        private string? finalTempFile;
         private Stopwatch? stopwatch;
         private TaskCompletionSource? recordingCompletionSource;
         private bool isDisposed;
         private readonly bool captureSystemAudio;
-        private readonly bool keepRecordingFiles;
-        private readonly string recordingTimestamp;
-        private readonly string recordingsDirectory;
 
         public event EventHandler<TimeSpan>? RecordingTimeUpdated;
         public event EventHandler<string>? StatusUpdated;
         public event EventHandler<Exception>? ErrorOccurred;
 
         public bool IsRecording { get; private set; }
-        public string? TempFilePath => mixedFile;
+        public string? TempFilePath => finalTempFile;
 
-        public AudioRecorder(bool captureSystemAudio, bool keepRecordingFiles)
+        public AudioRecorder(bool captureSystemAudio)
         {
             this.captureSystemAudio = captureSystemAudio;
-            this.keepRecordingFiles = keepRecordingFiles;
-            this.recordingTimestamp = DateTime.Now.ToString("yyyy-MM-dd-HH-mm-ss");
-            this.recordingsDirectory = Path.Combine(AppContext.BaseDirectory, "Recordings");
-            
-            // Create recordings directory if it doesn't exist
-            if (!Directory.Exists(recordingsDirectory))
-            {
-                Directory.CreateDirectory(recordingsDirectory);
-            }
         }
 
         public async Task StartRecording()
@@ -52,13 +40,13 @@ namespace EasyWhisper
                 if (IsRecording)
                     return;
 
-                // Create recording files with timestamp
-                micFile = Path.Combine(recordingsDirectory, $"{recordingTimestamp}-microphone.wav");
+                // Create temporary files
+                micTempFile = Path.GetTempFileName();
                 if (captureSystemAudio)
                 {
-                    speakerFile = Path.Combine(recordingsDirectory, $"{recordingTimestamp}-system.wav");
+                    speakerTempFile = Path.GetTempFileName();
                 }
-                mixedFile = Path.Combine(recordingsDirectory, $"{recordingTimestamp}-mixed.wav");
+                finalTempFile = Path.GetTempFileName();
 
                 // Initialize microphone recording
                 waveIn = new WaveInEvent
@@ -67,7 +55,7 @@ namespace EasyWhisper
                     BufferMilliseconds = 50
                 };
 
-                micWriter = new WaveFileWriter(micFile, waveIn.WaveFormat);
+                micWriter = new WaveFileWriter(micTempFile, waveIn.WaveFormat);
                 waveIn.DataAvailable += WaveIn_DataAvailable;
                 waveIn.RecordingStopped += WaveIn_RecordingStopped;
 
@@ -76,7 +64,7 @@ namespace EasyWhisper
                 {
                     Debug.WriteLine("Initializing system audio capture");
                     speakerCapture = new WasapiLoopbackCapture();
-                    speakerWriter = new WaveFileWriter(speakerFile, speakerCapture.WaveFormat);
+                    speakerWriter = new WaveFileWriter(speakerTempFile, speakerCapture.WaveFormat);
                     speakerCapture.DataAvailable += SpeakerCapture_DataAvailable;
                     speakerCapture.RecordingStopped += SpeakerCapture_RecordingStopped;
                 }
@@ -119,25 +107,11 @@ namespace EasyWhisper
             }
 
             // Mix the audio files if system audio was captured
-            if (captureSystemAudio && micFile != null && speakerFile != null && mixedFile != null)
+            if (captureSystemAudio && micTempFile != null && speakerTempFile != null && finalTempFile != null)
             {
                 try
                 {
-                    await Task.Run(() => MixAudioFiles(micFile, speakerFile, mixedFile));
-
-                    // Clean up source files if not keeping them
-                    if (!keepRecordingFiles)
-                    {
-                        try
-                        {
-                            File.Delete(micFile);
-                            File.Delete(speakerFile);
-                        }
-                        catch (Exception ex)
-                        {
-                            Debug.WriteLine($"Error cleaning up source files: {ex}");
-                        }
-                    }
+                    await Task.Run(() => MixAudioFiles(micTempFile, speakerTempFile, finalTempFile));
                 }
                 catch (Exception ex)
                 {
@@ -146,49 +120,13 @@ namespace EasyWhisper
                     throw;
                 }
             }
-            else if (micFile != null && mixedFile != null)
+            else if (micTempFile != null && finalTempFile != null)
             {
-                // If no system audio, just copy the mic file to mixed
-                File.Copy(micFile, mixedFile, true);
-                
-                // Clean up source file if not keeping it
-                if (!keepRecordingFiles)
-                {
-                    try
-                    {
-                        File.Delete(micFile);
-                    }
-                    catch (Exception ex)
-                    {
-                        Debug.WriteLine($"Error cleaning up source file: {ex}");
-                    }
-                }
+                // If no system audio, just copy the mic file
+                File.Copy(micTempFile, finalTempFile, true);
             }
 
             StatusUpdated?.Invoke(this, "Recording stopped");
-        }
-
-        private float AnalyzeVolume(ISampleProvider provider)
-        {
-            float maxVolume = 0;
-            var buffer = new float[provider.WaveFormat.SampleRate * 2]; // 2 seconds of audio
-            int samplesRead;
-
-            while ((samplesRead = provider.Read(buffer, 0, buffer.Length)) > 0)
-            {
-                for (int i = 0; i < samplesRead; i++)
-                {
-                    float abs = Math.Abs(buffer[i]);
-                    if (abs > maxVolume) maxVolume = abs;
-                }
-            }
-
-            return maxVolume;
-        }
-
-        private ISampleProvider NormalizeVolume(ISampleProvider provider, float targetVolume)
-        {
-            return new VolumeSampleProvider(provider) { Volume = targetVolume };
         }
 
         private void MixAudioFiles(string micFile, string speakerFile, string outputFile)
@@ -200,35 +138,11 @@ namespace EasyWhisper
             var speakerMono = speakerReader.ToMono();
             var speakerResampled = new WdlResamplingSampleProvider(speakerMono, 44100);
 
-            // Analyze volumes
-            Debug.WriteLine("Analyzing audio volumes...");
-            float micVolume = AnalyzeVolume(micReader);
-            micReader.Position = 0; // Reset position after analysis
-            
-            float speakerVolume = AnalyzeVolume(speakerResampled);
-            speakerReader.Position = 0; // Reset position
-            speakerMono = speakerReader.ToMono(); // Recreate after position reset
-            speakerResampled = new WdlResamplingSampleProvider(speakerMono, 44100);
-
-            Debug.WriteLine($"Original volumes - Mic: {micVolume:F2}, Speaker: {speakerVolume:F2}");
-
-            // Calculate normalization factors
-            float targetVolume = 0.7f; // Target peak volume (70% of maximum)
-            float micNormFactor = micVolume > 0 ? targetVolume / micVolume : 1.0f;
-            float speakerNormFactor = speakerVolume > 0 ? targetVolume / speakerVolume : 1.0f;
-
-            // Apply volume normalization
-            var normalizedMic = NormalizeVolume(micReader, micNormFactor);
-            var normalizedSpeaker = NormalizeVolume(speakerResampled, speakerNormFactor);
-
-            Debug.WriteLine($"Applied normalization factors - Mic: {micNormFactor:F2}, Speaker: {speakerNormFactor:F2}");
-
-            // Create the mixer with normalized inputs
-            var mixer = new MixingSampleProvider(new ISampleProvider[] { normalizedMic, normalizedSpeaker });
+            // Create the mixer
+            var mixer = new MixingSampleProvider(new ISampleProvider[] { micReader, speakerResampled });
             
             // Write the mixed audio to the output file
             WaveFileWriter.CreateWaveFile16(outputFile, mixer);
-            Debug.WriteLine("Audio mixing completed with volume normalization");
         }
 
         private void WaveIn_DataAvailable(object? sender, WaveInEventArgs e)
@@ -308,20 +222,17 @@ namespace EasyWhisper
                 speakerCapture?.Dispose();
                 stopwatch?.Stop();
 
-                // Clean up files if not keeping them
-                if (!keepRecordingFiles)
+                // Clean up temporary files
+                try
                 {
-                    try
-                    {
-                        if (micFile != null && File.Exists(micFile))
-                            File.Delete(micFile);
-                        if (speakerFile != null && File.Exists(speakerFile))
-                            File.Delete(speakerFile);
-                        if (mixedFile != null && File.Exists(mixedFile))
-                            File.Delete(mixedFile);
-                    }
-                    catch { /* Ignore cleanup errors */ }
+                    if (micTempFile != null && File.Exists(micTempFile))
+                        File.Delete(micTempFile);
+                    if (speakerTempFile != null && File.Exists(speakerTempFile))
+                        File.Delete(speakerTempFile);
+                    if (finalTempFile != null && File.Exists(finalTempFile))
+                        File.Delete(finalTempFile);
                 }
+                catch { /* Ignore cleanup errors */ }
             }
         }
     }

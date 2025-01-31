@@ -1,4 +1,6 @@
+using System;
 using System.Windows;
+using System.Windows.Controls;
 
 namespace EasyWhisper
 {
@@ -30,6 +32,8 @@ namespace EasyWhisper
             ProcessLocallyCheckBox.IsChecked = _options.ProcessLocally;
             LanguageComboBox.SelectedIndex = (int)_options.Language;
             IncludeTimestampsCheckBox.IsChecked = _options.IncludeTimestamps;
+            CaptureSystemAudioCheckBox.IsChecked = _options.CaptureSystemAudio;
+            KeepRecordingFilesCheckBox.IsChecked = _options.KeepRecordingFiles;
             ApiKeyTextBox.Text = _options.OpenAIApiKey ?? "";
             BasePathTextBox.Text = _options.OpenAIBasePath ?? "";
 
@@ -52,6 +56,8 @@ namespace EasyWhisper
             _options.IncludeTimestamps = IncludeTimestampsCheckBox.IsChecked ?? false;
             _options.OpenAIApiKey = string.IsNullOrWhiteSpace(ApiKeyTextBox.Text) ? null : ApiKeyTextBox.Text.Trim();
             _options.OpenAIBasePath = string.IsNullOrWhiteSpace(BasePathTextBox.Text) ? null : BasePathTextBox.Text.Trim();
+            _options.CaptureSystemAudio = CaptureSystemAudioCheckBox.IsChecked ?? false;
+            _options.KeepRecordingFiles = KeepRecordingFilesCheckBox.IsChecked ?? false;
             
             _options.SaveSettings();
             DialogResult = true;
