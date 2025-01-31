@@ -22,6 +22,7 @@ namespace EasyWhisper
         public bool IncludeTimestamps { get; set; }
         public bool CaptureSystemAudio { get; set; }
         public bool KeepRecordingFiles { get; set; }
+        public bool SaveTranscript { get; set; }
         public string? OpenAIApiKey { get; set; }
         public string? OpenAIBasePath { get; set; }
 
@@ -89,6 +90,7 @@ namespace EasyWhisper
             IncludeTimestamps = false;
             CaptureSystemAudio = false;
             KeepRecordingFiles = false;
+            SaveTranscript = false;
             OpenAIApiKey = null; // Will use OPENAI_API_KEY environment variable if not set
             OpenAIBasePath = null;
         }
@@ -104,7 +106,8 @@ namespace EasyWhisper
                 OpenAIApiKey = this.OpenAIApiKey,
                 OpenAIBasePath = this.OpenAIBasePath,
                 CaptureSystemAudio = this.CaptureSystemAudio,
-                KeepRecordingFiles = this.KeepRecordingFiles
+                KeepRecordingFiles = this.KeepRecordingFiles,
+                SaveTranscript = this.SaveTranscript
             };
         }
 

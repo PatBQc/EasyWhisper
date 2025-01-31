@@ -34,6 +34,7 @@ namespace EasyWhisper
             IncludeTimestampsCheckBox.IsChecked = _options.IncludeTimestamps;
             CaptureSystemAudioCheckBox.IsChecked = _options.CaptureSystemAudio;
             KeepRecordingFilesCheckBox.IsChecked = _options.KeepRecordingFiles;
+            SaveTranscriptCheckBox.IsChecked = _options.SaveTranscript;
             ApiKeyTextBox.Text = _options.OpenAIApiKey ?? "";
             BasePathTextBox.Text = _options.OpenAIBasePath ?? "";
 
@@ -58,6 +59,7 @@ namespace EasyWhisper
             _options.OpenAIBasePath = string.IsNullOrWhiteSpace(BasePathTextBox.Text) ? null : BasePathTextBox.Text.Trim();
             _options.CaptureSystemAudio = CaptureSystemAudioCheckBox.IsChecked ?? false;
             _options.KeepRecordingFiles = KeepRecordingFilesCheckBox.IsChecked ?? false;
+            _options.SaveTranscript = SaveTranscriptCheckBox.IsChecked ?? false;
             
             _options.SaveSettings();
             DialogResult = true;

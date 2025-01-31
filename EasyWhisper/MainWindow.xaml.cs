@@ -1,9 +1,10 @@
-﻿﻿﻿﻿﻿﻿using NAudio.Wave;
+﻿﻿using NAudio.Wave;
 using System;
 using System.Diagnostics;
 using System.IO;
 using System.Net.Http;
 using System.Threading.Channels;
+using System.Text;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
@@ -139,7 +140,7 @@ namespace EasyWhisper
 
                 var startTime = DateTime.Now;
 
-                var result = new System.Text.StringBuilder();
+                var result = new StringBuilder();
                 await foreach (var segment in processor.ProcessAsync(fileStream))
                 {
                     result.AppendLine(segment.Text);
@@ -147,10 +148,21 @@ namespace EasyWhisper
 
                 var endTime = DateTime.Now;
                 var duration = endTime - startTime;
+                var transcriptText = result.ToString().Trim();
 
-                TranscriptionTextBox.Text = result.ToString().Trim();
+                TranscriptionTextBox.Text = transcriptText;
                 StartRecordingButton.IsEnabled = true;
                 CopyToClipboardButton.IsEnabled = true;
+
+                if (_options.SaveTranscript && audioRecorder?.TempFilePath != null)
+                {
+                    var transcriptPath = Path.Combine(
+                        Path.GetDirectoryName(audioRecorder.TempFilePath)!,
+                        Path.GetFileNameWithoutExtension(audioRecorder.TempFilePath) + "-Transcript.txt"
+                    );
+                    File.WriteAllText(transcriptPath, transcriptText);
+                }
+
                 StatusText.Text = "Transcription complete, took " + duration.ToString("mm\\:ss") + " (minutes:secondes) for a recording of " + TimerDisplay.Text;
             }
             catch (Exception ex)
@@ -183,6 +195,16 @@ namespace EasyWhisper
                 TranscriptionTextBox.Text = transcript;
                 StartRecordingButton.IsEnabled = true;
                 CopyToClipboardButton.IsEnabled = true;
+
+                if (_options.SaveTranscript && audioRecorder?.TempFilePath != null)
+                {
+                    var transcriptPath = Path.Combine(
+                        Path.GetDirectoryName(audioRecorder.TempFilePath)!,
+                        Path.GetFileNameWithoutExtension(audioRecorder.TempFilePath) + "-Transcript.txt"
+                    );
+                    File.WriteAllText(transcriptPath, transcript);
+                }
+
                 StatusText.Text = "Transcription complete, took " + duration.ToString("mm\\:ss") + " (minutes:secondes) for a recording of " + TimerDisplay.Text;
             }
             catch (Exception ex)

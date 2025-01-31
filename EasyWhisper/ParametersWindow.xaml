@@ -5,7 +5,7 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:EasyWhisper"
         mc:Ignorable="d"
-        Title="Parameters" Height="600" Width="400"
+        Title="Parameters" Height="700" Width="400"
         WindowStartupLocation="CenterOwner"
         ShowInTaskbar="False"
         ResizeMode="NoResize"
@@ -41,6 +41,11 @@
 
             <CheckBox x:Name="KeepRecordingFilesCheckBox" Content="Keep recording files" Margin="0,10,0,0"/>
             <TextBlock Text="Note: Files will be saved in the 'Recording' folder" 
+                     TextWrapping="Wrap" Margin="20,5,0,0" 
+                     Foreground="Gray" FontStyle="Italic"/>
+
+            <CheckBox x:Name="SaveTranscriptCheckBox" Content="Save transcript as text file" Margin="0,10,0,0"/>
+            <TextBlock Text="Note: Transcript will be saved in the 'Recording' folder" 
                      TextWrapping="Wrap" Margin="20,5,0,0" 
                      Foreground="Gray" FontStyle="Italic"/>
 
