@@ -1,4 +1,4 @@
-﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿using NAudio.Wave;
+﻿﻿using NAudio.Wave;
 using System;
 using System.Diagnostics;
 using System.IO;
@@ -13,17 +13,15 @@ using Whisper.net.Ggml;
 
 namespace EasyWhisper
 {
+    /// <summary>
+    /// Interaction logic for MainWindow.xaml
+    /// </summary>
     public partial class MainWindow : Window
     {
-        private WaveInEvent? waveIn;
-        private WaveFileWriter? writer;
-        private string? tempFile;
-        private DispatcherTimer? timer;
-        private Stopwatch? stopwatch;
+        private AudioRecorder? audioRecorder;
         private WhisperFactory? whisperFactory;
         private const string ModelFileNameTemplate = "ggml-{0}.bin";
         private string? ModelFileName;
-        private TaskCompletionSource? recordingCompletionSource;
         private ParameterOptions _options;
 
         public MainWindow()
@@ -76,116 +74,60 @@ namespace EasyWhisper
         {
             try
             {
-                tempFile = Path.GetTempFileName();
-                waveIn = new WaveInEvent
-                {
-                    WaveFormat = new WaveFormat(16000, 16, 1),
-                    BufferMilliseconds = 20
-                };
+                audioRecorder = new AudioRecorder();
+                audioRecorder.StatusUpdated += (s, status) => StatusText.Text = status;
+                audioRecorder.RecordingTimeUpdated += (s, time) => TimerDisplay.Text = time.ToString(@"hh\:mm\:ss");
+                audioRecorder.ErrorOccurred += (s, ex) => MessageBox.Show($"Error during recording: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
 
-                writer = new WaveFileWriter(tempFile, waveIn.WaveFormat);
-                recordingCompletionSource = new TaskCompletionSource();
+                StartRecordingButton.IsEnabled = false;
+                StopRecordingButton.IsEnabled = true;
+                TranscriptionTextBox.Clear();
+                CopyToClipboardButton.IsEnabled = false;
 
-                waveIn.DataAvailable += WaveIn_DataAvailable;
-                waveIn.RecordingStopped += WaveIn_RecordingStopped;
-
-                StartRecording();
+                await audioRecorder.StartRecording();
+                StatusText.Text = "Recording...";
             }
             catch (Exception ex)
             {
                 MessageBox.Show($"Error starting recording: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
-                await StopRecording();
+                if (audioRecorder != null)
+                {
+                    await audioRecorder.StopRecording();
+                    audioRecorder.Dispose();
+                    audioRecorder = null;
+                }
             }
-        }
-
-        private void StartRecording()
-        {
-            waveIn?.StartRecording();
-            StartRecordingButton.IsEnabled = false;
-            StopRecordingButton.IsEnabled = true;
-            TranscriptionTextBox.Clear();
-            CopyToClipboardButton.IsEnabled = false;
-
-            stopwatch = Stopwatch.StartNew();
-            timer = new DispatcherTimer
-            {
-                Interval = TimeSpan.FromSeconds(0.75)
-            };
-            timer.Tick += Timer_Tick;
-            timer.Start();
-
-            StatusText.Text = "Recording...";
-        }
-
-        private void Timer_Tick(object? sender, EventArgs e)
-        {
-            if (stopwatch != null)
-            {
-                TimerDisplay.Text = stopwatch.Elapsed.ToString(@"hh\:mm\:ss");
-            }
-        }
-
-        private void WaveIn_DataAvailable(object? sender, WaveInEventArgs e)
-        {
-            writer?.Write(e.Buffer, 0, e.BytesRecorded);
-        }
-
-        private void WaveIn_RecordingStopped(object? sender, StoppedEventArgs e)
-        {
-            if (writer != null)
-            {
-                writer.Flush();
-                writer.Dispose();
-                writer = null;
-            }
-
-            waveIn?.Dispose();
-            waveIn = null;
-
-            timer?.Stop();
-            stopwatch?.Stop();
-
-            recordingCompletionSource?.TrySetResult();
         }
 
         private async void StopRecordingButton_Click(object sender, RoutedEventArgs e)
         {
-            await StopRecording();
+            if (audioRecorder != null)
+            {
+                await audioRecorder.StopRecording();
+                StopRecordingButton.IsEnabled = false;
+                StatusText.Text = "Processing audio...";
+                ProcessingProgressBar.Visibility = Visibility.Visible;
+                ProcessingProgressBar.IsIndeterminate = true;
 
-            if (_options.ProcessLocally)
-            {
-                await ProcessAudioLocally();
-            }
-            else
-            {
-                await ProcessAudioOnline();
-            }
-        }
-
-        private async Task StopRecording()
-        {
-            if (waveIn != null)
-            {
-                waveIn.StopRecording();
-                // Wait for recording to fully stop
-                if (recordingCompletionSource != null)
+                if (_options.ProcessLocally)
                 {
-                    await recordingCompletionSource.Task;
-                    recordingCompletionSource = null;
+                    await ProcessAudioLocally();
                 }
-            }
+                else
+                {
+                    await ProcessAudioOnline();
+                }
 
-            StopRecordingButton.IsEnabled = false;
-            StatusText.Text = "Processing audio...";
-            ProcessingProgressBar.Visibility = Visibility.Visible;
-            ProcessingProgressBar.IsIndeterminate = true;
+                audioRecorder.Dispose();
+                audioRecorder = null;
+            }
         }
 
         private async Task ProcessAudioLocally()
         {
             await InitializeWhisper();
 
-            if (tempFile == null || whisperFactory == null) return;
+            if (audioRecorder?.TempFilePath == null || whisperFactory == null) return;
 
             try
             {
@@ -193,7 +135,7 @@ namespace EasyWhisper
                     .WithLanguage(_options.GetLanguageCode())
                     .Build();
 
-                using var fileStream = File.OpenRead(tempFile);
+                using var fileStream = File.OpenRead(audioRecorder.TempFilePath);
 
                 var startTime = DateTime.Now;
 
@@ -219,14 +161,6 @@ namespace EasyWhisper
             finally
             {
                 ProcessingProgressBar.Visibility = Visibility.Collapsed;
-                if (File.Exists(tempFile))
-                {
-                    try
-                    {
-                        File.Delete(tempFile);
-                    }
-                    catch { /* Ignore cleanup errors */ }
-                }
             }
         }
 
@@ -237,7 +171,7 @@ namespace EasyWhisper
                 var startTime = DateTime.Now;
 
                 var transcript = await WhisperHelper.GenerateTranscription(
-                    tempFile, 
+                    audioRecorder.TempFilePath, 
                     openAIApiKey: _options.OpenAIApiKey,
                     openAIBasePath: _options.OpenAIBasePath,
                     includeTimestamps: _options.IncludeTimestamps,
@@ -259,14 +193,6 @@ namespace EasyWhisper
             finally
             {
                 ProcessingProgressBar.Visibility = Visibility.Collapsed;
-                if (File.Exists(tempFile))
-                {
-                    try
-                    {
-                        File.Delete(tempFile);
-                    }
-                    catch { /* Ignore cleanup errors */ }
-                }
             }
         }
 
@@ -290,7 +216,12 @@ namespace EasyWhisper
 
         protected override void OnClosed(EventArgs e)
         {
-            StopRecording().Wait();
+            if (audioRecorder != null)
+            {
+                audioRecorder.StopRecording().Wait();
+                audioRecorder.Dispose();
+                audioRecorder = null;
+            }
             whisperFactory?.Dispose();
             base.OnClosed(e);
         }
