@@ -212,16 +212,29 @@ namespace EasyWhisper
 
             Debug.WriteLine($"Original volumes - Mic: {micVolume:F2}, Speaker: {speakerVolume:F2}");
 
-            // Calculate normalization factors
-            float targetVolume = 0.7f; // Target peak volume (70% of maximum)
-            float micNormFactor = micVolume > 0 ? targetVolume / micVolume : 1.0f;
-            float speakerNormFactor = speakerVolume > 0 ? targetVolume / speakerVolume : 1.0f;
+            // Determine which source is stronger and calculate boost factor for the weaker one
+            float maxBoostFactor = 2.0f; // Maximum boost to avoid excessive amplification
+            float micNormFactor = 1.0f;
+            float speakerNormFactor = 1.0f;
 
-            // Apply volume normalization
+            if (micVolume > speakerVolume && speakerVolume > 0)
+            {
+                // Mic is stronger, boost speaker
+                speakerNormFactor = Math.Min(micVolume / speakerVolume, maxBoostFactor);
+                Debug.WriteLine($"Boosting speaker audio to match mic level (factor: {speakerNormFactor:F2})");
+            }
+            else if (speakerVolume > micVolume && micVolume > 0)
+            {
+                // Speaker is stronger, boost mic
+                micNormFactor = Math.Min(speakerVolume / micVolume, maxBoostFactor);
+                Debug.WriteLine($"Boosting mic audio to match speaker level (factor: {micNormFactor:F2})");
+            }
+
+            // Apply volume adjustments
             var normalizedMic = NormalizeVolume(micReader, micNormFactor);
             var normalizedSpeaker = NormalizeVolume(speakerResampled, speakerNormFactor);
 
-            Debug.WriteLine($"Applied normalization factors - Mic: {micNormFactor:F2}, Speaker: {speakerNormFactor:F2}");
+            Debug.WriteLine($"Applied volume factors - Mic: {micNormFactor:F2}, Speaker: {speakerNormFactor:F2}");
 
             // Create the mixer with normalized inputs
             var mixer = new MixingSampleProvider(new ISampleProvider[] { normalizedMic, normalizedSpeaker });
