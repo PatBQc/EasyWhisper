@@ -9,6 +9,10 @@ using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Threading;
+using System.Windows.Documents;
+using System.Windows.Media;
+using System.ComponentModel;
+using System.Runtime.CompilerServices;
 using Whisper.net;
 using Whisper.net.Ggml;
 
@@ -17,19 +21,65 @@ namespace EasyWhisper
     /// <summary>
     /// Interaction logic for MainWindow.xaml
     /// </summary>
-    public partial class MainWindow : Window
+    public partial class MainWindow : Window, INotifyPropertyChanged
     {
         private AudioRecorder? audioRecorder;
         private WhisperFactory? whisperFactory;
         private const string ModelFileNameTemplate = "ggml-{0}.bin";
         private string? ModelFileName;
         private ParameterOptions _options;
+        private const string MicIcon = "🎤";
+        private const string SpeakerIcon = "🔊";
+        public event PropertyChangedEventHandler? PropertyChanged;
+
+        protected void OnPropertyChanged([CallerMemberName] string? propertyName = null)
+        {
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+        }
+
+        private bool isMicrophoneMuted;
+        private bool isSpeakerMuted;
+
+        public bool IsMicrophoneMuted
+        {
+            get => isMicrophoneMuted;
+            set
+            {
+                if (isMicrophoneMuted != value)
+                {
+                    isMicrophoneMuted = value;
+                    if (audioRecorder != null)
+                    {
+                        audioRecorder.SetMicrophoneMuted(value);
+                    }
+                    OnPropertyChanged();
+                }
+            }
+        }
+
+        public bool IsSpeakerMuted
+        {
+            get => isSpeakerMuted;
+            set
+            {
+                if (isSpeakerMuted != value)
+                {
+                    isSpeakerMuted = value;
+                    if (audioRecorder != null)
+                    {
+                        audioRecorder.SetSpeakerMuted(value);
+                    }
+                    OnPropertyChanged();
+                }
+            }
+        }
 
         public MainWindow()
         {
             InitializeComponent();
             _options = ParameterOptions.LoadSettings();
             StatusText.Text = "Ready to record...";
+            
         }
 
         private async Task InitializeWhisper()
@@ -75,15 +125,22 @@ namespace EasyWhisper
         {
             try
             {
-                audioRecorder = new AudioRecorder(_options.CaptureSystemAudio, _options.KeepRecordingFiles);
+                // Initialize recorder with both streams, speaker muted based on options
+                audioRecorder = new AudioRecorder(_options.KeepRecordingFiles, !_options.CaptureSystemAudio);
                 audioRecorder.StatusUpdated += (s, status) => StatusText.Text = status;
                 audioRecorder.RecordingTimeUpdated += (s, time) => TimerDisplay.Text = time.ToString(@"hh\:mm\:ss");
                 audioRecorder.ErrorOccurred += (s, ex) => MessageBox.Show($"Error during recording: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
 
                 StartRecordingButton.IsEnabled = false;
                 StopRecordingButton.IsEnabled = true;
+                MicrophoneButton.IsEnabled = true;
+                SpeakerButton.IsEnabled = true;
                 TranscriptionTextBox.Clear();
                 CopyToClipboardButton.IsEnabled = false;
+                
+                // Set initial states
+                IsMicrophoneMuted = false;
+                IsSpeakerMuted = !_options.CaptureSystemAudio;
 
                 await audioRecorder.StartRecording();
                 StatusText.Text = "Recording...";
@@ -94,6 +151,9 @@ namespace EasyWhisper
                 if (audioRecorder != null)
                 {
                     await audioRecorder.StopRecording();
+                    // Reset mute states before disposing
+                    IsMicrophoneMuted = false;
+                    IsSpeakerMuted = false;
                     audioRecorder.Dispose();
                     audioRecorder = null;
                 }
@@ -119,6 +179,9 @@ namespace EasyWhisper
                     await ProcessAudioOnline();
                 }
 
+                // Reset mute states before disposing
+                IsMicrophoneMuted = false;
+                IsSpeakerMuted = false;
                 audioRecorder.Dispose();
                 audioRecorder = null;
             }
@@ -152,6 +215,8 @@ namespace EasyWhisper
 
                 TranscriptionTextBox.Text = transcriptText;
                 StartRecordingButton.IsEnabled = true;
+                MicrophoneButton.IsEnabled = false;
+                SpeakerButton.IsEnabled = false;
                 CopyToClipboardButton.IsEnabled = true;
 
                 if (_options.SaveTranscript && audioRecorder?.TempFilePath != null)
@@ -194,6 +259,8 @@ namespace EasyWhisper
 
                 TranscriptionTextBox.Text = transcript;
                 StartRecordingButton.IsEnabled = true;
+                MicrophoneButton.IsEnabled = false;
+                SpeakerButton.IsEnabled = false;
                 CopyToClipboardButton.IsEnabled = true;
 
                 if (_options.SaveTranscript && audioRecorder?.TempFilePath != null)
@@ -236,11 +303,24 @@ namespace EasyWhisper
             }
         }
 
+        private void MicrophoneButton_Click(object sender, RoutedEventArgs e)
+        {
+            IsMicrophoneMuted = !IsMicrophoneMuted;
+        }
+
+        private void SpeakerButton_Click(object sender, RoutedEventArgs e)
+        {
+            IsSpeakerMuted = !IsSpeakerMuted;
+        }
+
         protected override void OnClosed(EventArgs e)
         {
             if (audioRecorder != null)
             {
                 audioRecorder.StopRecording().Wait();
+                // Reset mute states before disposing
+                IsMicrophoneMuted = false;
+                IsSpeakerMuted = false;
                 audioRecorder.Dispose();
                 audioRecorder = null;
             }

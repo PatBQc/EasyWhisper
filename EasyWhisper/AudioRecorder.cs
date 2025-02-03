@@ -19,7 +19,6 @@ namespace EasyWhisper
         private Stopwatch? stopwatch;
         private TaskCompletionSource? recordingCompletionSource;
         private bool isDisposed;
-        private readonly bool captureSystemAudio;
         private readonly bool keepRecordingFiles;
         private readonly string recordingTimestamp;
         private readonly string recordingsDirectory;
@@ -30,11 +29,14 @@ namespace EasyWhisper
 
         public bool IsRecording { get; private set; }
         public string? TempFilePath => mixedFile;
+        public bool IsMicrophoneMuted { get; private set; }
+        public bool IsSpeakerMuted { get; private set; }
 
-        public AudioRecorder(bool captureSystemAudio, bool keepRecordingFiles)
+        public AudioRecorder(bool keepRecordingFiles, bool speakerMutedByDefault)
         {
-            this.captureSystemAudio = captureSystemAudio;
             this.keepRecordingFiles = keepRecordingFiles;
+            this.IsSpeakerMuted = speakerMutedByDefault;
+            this.IsMicrophoneMuted = false;
             this.recordingTimestamp = DateTime.Now.ToString("yyyy-MM-dd-HH-mm-ss");
             this.recordingsDirectory = Path.Combine(AppContext.BaseDirectory, "Recordings");
             
@@ -43,6 +45,16 @@ namespace EasyWhisper
             {
                 Directory.CreateDirectory(recordingsDirectory);
             }
+        }
+
+        public void SetMicrophoneMuted(bool muted)
+        {
+            IsMicrophoneMuted = muted;
+        }
+
+        public void SetSpeakerMuted(bool muted)
+        {
+            IsSpeakerMuted = muted;
         }
 
         public async Task StartRecording()
@@ -54,10 +66,7 @@ namespace EasyWhisper
 
                 // Create recording files with timestamp
                 micFile = Path.Combine(recordingsDirectory, $"{recordingTimestamp}-microphone.wav");
-                if (captureSystemAudio)
-                {
-                    speakerFile = Path.Combine(recordingsDirectory, $"{recordingTimestamp}-system.wav");
-                }
+                speakerFile = Path.Combine(recordingsDirectory, $"{recordingTimestamp}-system.wav");
                 mixedFile = Path.Combine(recordingsDirectory, $"{recordingTimestamp}-mixed.wav");
 
                 // Initialize microphone recording
@@ -71,21 +80,18 @@ namespace EasyWhisper
                 waveIn.DataAvailable += WaveIn_DataAvailable;
                 waveIn.RecordingStopped += WaveIn_RecordingStopped;
 
-                // Initialize speaker recording if enabled
-                if (captureSystemAudio)
-                {
-                    Debug.WriteLine("Initializing system audio capture");
-                    speakerCapture = new WasapiLoopbackCapture();
-                    speakerWriter = new WaveFileWriter(speakerFile, speakerCapture.WaveFormat);
-                    speakerCapture.DataAvailable += SpeakerCapture_DataAvailable;
-                    speakerCapture.RecordingStopped += SpeakerCapture_RecordingStopped;
-                }
+                // Initialize speaker recording (always)
+                Debug.WriteLine("Initializing system audio capture");
+                speakerCapture = new WasapiLoopbackCapture();
+                speakerWriter = new WaveFileWriter(speakerFile, speakerCapture.WaveFormat);
+                speakerCapture.DataAvailable += SpeakerCapture_DataAvailable;
+                speakerCapture.RecordingStopped += SpeakerCapture_RecordingStopped;
 
                 recordingCompletionSource = new TaskCompletionSource();
 
                 // Start recording
                 waveIn.StartRecording();
-                speakerCapture?.StartRecording();
+                speakerCapture.StartRecording();
                 IsRecording = true;
                 stopwatch = Stopwatch.StartNew();
                 StatusUpdated?.Invoke(this, "Recording started");
@@ -118,8 +124,8 @@ namespace EasyWhisper
                 recordingCompletionSource = null;
             }
 
-            // Mix the audio files if system audio was captured
-            if (captureSystemAudio && micFile != null && speakerFile != null && mixedFile != null)
+            // Mix the audio files (both are always captured)
+            if (micFile != null && speakerFile != null && mixedFile != null)
             {
                 try
                 {
@@ -144,24 +150,6 @@ namespace EasyWhisper
                     Debug.WriteLine($"Error mixing audio: {ex}");
                     ErrorOccurred?.Invoke(this, ex);
                     throw;
-                }
-            }
-            else if (micFile != null && mixedFile != null)
-            {
-                // If no system audio, just copy the mic file to mixed
-                File.Copy(micFile, mixedFile, true);
-                
-                // Clean up source file if not keeping it
-                if (!keepRecordingFiles)
-                {
-                    try
-                    {
-                        File.Delete(micFile);
-                    }
-                    catch (Exception ex)
-                    {
-                        Debug.WriteLine($"Error cleaning up source file: {ex}");
-                    }
                 }
             }
 
@@ -248,7 +236,16 @@ namespace EasyWhisper
         {
             try
             {
-                micWriter?.Write(e.Buffer, 0, e.BytesRecorded);
+                if (IsMicrophoneMuted)
+                {
+                    // Write silence
+                    var silenceBuffer = new byte[e.BytesRecorded];
+                    micWriter?.Write(silenceBuffer, 0, e.BytesRecorded);
+                }
+                else
+                {
+                    micWriter?.Write(e.Buffer, 0, e.BytesRecorded);
+                }
             }
             catch (Exception ex)
             {
@@ -261,7 +258,16 @@ namespace EasyWhisper
         {
             try
             {
-                speakerWriter?.Write(e.Buffer, 0, e.BytesRecorded);
+                if (IsSpeakerMuted)
+                {
+                    // Write silence
+                    var silenceBuffer = new byte[e.BytesRecorded];
+                    speakerWriter?.Write(silenceBuffer, 0, e.BytesRecorded);
+                }
+                else
+                {
+                    speakerWriter?.Write(e.Buffer, 0, e.BytesRecorded);
+                }
             }
             catch (Exception ex)
             {

@@ -4,9 +4,14 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:EasyWhisper"
+        xmlns:sys="clr-namespace:System;assembly=mscorlib"
         mc:Ignorable="d"
         Title="Easy Whisper" Height="450" Width="800"
-        WindowStartupLocation="CenterScreen">
+        WindowStartupLocation="CenterScreen"
+        DataContext="{Binding RelativeSource={RelativeSource Self}}">
+    <Window.Resources>
+        <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter"/>
+    </Window.Resources>
     <Grid Margin="10">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
@@ -23,12 +28,93 @@
             </Grid.ColumnDefinitions>
             
             <StackPanel Grid.Column="0" Orientation="Horizontal">
-                <Button x:Name="StartRecordingButton" Content="Start Recording" Width="120" Height="30" Margin="0,0,10,0" Click="StartRecordingButton_Click"/>
-                <Button x:Name="StopRecordingButton" Content="Stop Recording" Width="120" Height="30" IsEnabled="False" Click="StopRecordingButton_Click"/>
+                <Button x:Name="StartRecordingButton" Content="Start Recording" Width="120" Height="30" Margin="0,0,10,0" Click="StartRecordingButton_Click"
+                        ToolTip="Start a new recording"/>
+                <Button x:Name="StopRecordingButton" Content="Stop Recording" Width="120" Height="30" IsEnabled="False" Click="StopRecordingButton_Click"
+                        ToolTip="Stop the current recording"/>
                 <TextBlock x:Name="TimerDisplay" Text="00:00:00" VerticalAlignment="Center" Margin="20,0,0,0" FontSize="16"/>
             </StackPanel>
             
-            <Button Grid.Column="1" x:Name="ParametersButton" Content="⚙️" Width="30" Height="30" Click="ParametersButton_Click"/>
+            <StackPanel Grid.Column="1" Orientation="Horizontal">
+                <Button x:Name="MicrophoneButton" Width="30" Height="30" Margin="0,0,5,0" Click="MicrophoneButton_Click" IsEnabled="False"
+                        ToolTip="Mute/Unmute Microphone">
+                    <Grid>
+                        <TextBlock Text="🎤" FontSize="16" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        <TextBlock Text="✕" FontSize="20" FontWeight="Bold" HorizontalAlignment="Center" VerticalAlignment="Center" 
+                                 Foreground="Red" Opacity="0.9">
+                            <TextBlock.Style>
+                                <Style TargetType="TextBlock">
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding IsMicrophoneMuted, RelativeSource={RelativeSource AncestorType=Window}}" Value="True">
+                                            <DataTrigger.EnterActions>
+                                                <BeginStoryboard>
+                                                    <Storyboard>
+                                                        <ObjectAnimationUsingKeyFrames Storyboard.TargetProperty="Visibility">
+                                                            <DiscreteObjectKeyFrame KeyTime="0:0:0" Value="{x:Static Visibility.Visible}"/>
+                                                        </ObjectAnimationUsingKeyFrames>
+                                                        <DoubleAnimation Storyboard.TargetProperty="Opacity" From="0" To="0.9" Duration="0:0:0.2"/>
+                                                    </Storyboard>
+                                                </BeginStoryboard>
+                                            </DataTrigger.EnterActions>
+                                            <DataTrigger.ExitActions>
+                                                <BeginStoryboard>
+                                                    <Storyboard>
+                                                        <DoubleAnimation Storyboard.TargetProperty="Opacity" From="0.9" To="0" Duration="0:0:0.2"/>
+                                                        <ObjectAnimationUsingKeyFrames Storyboard.TargetProperty="Visibility">
+                                                            <DiscreteObjectKeyFrame KeyTime="0:0:0.2" Value="{x:Static Visibility.Collapsed}"/>
+                                                        </ObjectAnimationUsingKeyFrames>
+                                                    </Storyboard>
+                                                </BeginStoryboard>
+                                            </DataTrigger.ExitActions>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                </Style>
+                            </TextBlock.Style>
+                        </TextBlock>
+                    </Grid>
+                </Button>
+                <Button x:Name="SpeakerButton" Width="30" Height="30" Margin="0,0,5,0" Click="SpeakerButton_Click" IsEnabled="False"
+                        ToolTip="Mute/Unmute System Audio">
+                    <Grid>
+                        <TextBlock Text="🔊" FontSize="16" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        <TextBlock Text="✕" FontSize="20" FontWeight="Bold" HorizontalAlignment="Center" VerticalAlignment="Center" 
+                                 Foreground="Red" Opacity="0.9">
+                            <TextBlock.Style>
+                                <Style TargetType="TextBlock">
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding IsSpeakerMuted, RelativeSource={RelativeSource AncestorType=Window}}" Value="True">
+                                            <DataTrigger.EnterActions>
+                                                <BeginStoryboard>
+                                                    <Storyboard>
+                                                        <ObjectAnimationUsingKeyFrames Storyboard.TargetProperty="Visibility">
+                                                            <DiscreteObjectKeyFrame KeyTime="0:0:0" Value="{x:Static Visibility.Visible}"/>
+                                                        </ObjectAnimationUsingKeyFrames>
+                                                        <DoubleAnimation Storyboard.TargetProperty="Opacity" From="0" To="0.9" Duration="0:0:0.2"/>
+                                                    </Storyboard>
+                                                </BeginStoryboard>
+                                            </DataTrigger.EnterActions>
+                                            <DataTrigger.ExitActions>
+                                                <BeginStoryboard>
+                                                    <Storyboard>
+                                                        <DoubleAnimation Storyboard.TargetProperty="Opacity" From="0.9" To="0" Duration="0:0:0.2"/>
+                                                        <ObjectAnimationUsingKeyFrames Storyboard.TargetProperty="Visibility">
+                                                            <DiscreteObjectKeyFrame KeyTime="0:0:0.2" Value="{x:Static Visibility.Collapsed}"/>
+                                                        </ObjectAnimationUsingKeyFrames>
+                                                    </Storyboard>
+                                                </BeginStoryboard>
+                                            </DataTrigger.ExitActions>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                </Style>
+                            </TextBlock.Style>
+                        </TextBlock>
+                    </Grid>
+                </Button>
+                <Button x:Name="ParametersButton" Content="⚙️" Width="30" Height="30" Click="ParametersButton_Click"
+                        ToolTip="Settings"/>
+            </StackPanel>
         </Grid>
 
         <ProgressBar Grid.Row="1" x:Name="ProcessingProgressBar" Height="20" Margin="0,0,0,10" Visibility="Collapsed"/>
@@ -47,6 +133,7 @@
                 Height="30" 
                 HorizontalAlignment="Right"
                 Click="CopyToClipboardButton_Click"
-                IsEnabled="False"/>
+                IsEnabled="False"
+                ToolTip="Copy transcription text to clipboard"/>
     </Grid>
 </Window>
