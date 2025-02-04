@@ -81,6 +81,44 @@ Built with:
 - NAudio for audio capture
 - OpenAI API integration
 
+## 🚀 Future Development Ideas & TODOs
+
+### UI/UX Enhancements
+- [ ] Implement "Always on Top" option for window behavior
+- [ ] Add Compact Mode view
+- [ ] Create Dark Mode theme support
+- [ ] Add visual feedback for audio input/output
+  - Rolling 1-second activity indicator (green light)
+  - Optional: Audio levels visualization/EQ
+
+### Core Features
+- [ ] Add automatic clipboard copy after transcription
+- [ ] Implement Windows-H like functionality
+  - Auto-start recording when application launches
+  - Send transcribed text to previously focused control
+- [ ] Explore integration with alternative speech-to-text services
+  - Investigate AI Explain for better speaker separation
+  - Compare cost efficiency vs. Whisper
+  - Evaluate word recognition accuracy across services
+
+### Integration & Export
+- [ ] Develop post-transcription workflow options
+  - Create pluggable architecture for external processors
+  - Support command-line execution with transcription file input
+  - Allow intention/context passing to external processors
+- [ ] Add export capabilities for various use cases:
+  - Sprint retrospective reports
+  - CFR documentation
+  - Meeting summaries
+
+### Nice-to-Have
+- [ ] Implement modular post-processing system
+- [ ] Create plugin architecture for extended functionality
+- [ ] Add configuration options for automated workflows
+
+---
+💡 Note: This list is dynamic and will be updated based on user feedback and development priorities.
+
 ## 📄 License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
